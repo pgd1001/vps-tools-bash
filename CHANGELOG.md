@@ -5,6 +5,25 @@ All notable changes to VPS Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-12-11
+
+### Added
+- **Plugin System** for modular script management
+  - `plugins.conf.default` - Default registry mapping commands to scripts
+  - `/etc/vps-tools/plugins.conf` - User-editable plugin configuration
+  - `custom/` directory for user scripts (gitignored)
+  - `vps-tools plugin list` - List enabled plugins
+  - `vps-tools plugin add` - Add custom scripts
+  - `vps-tools plugin enable/disable` - Enable or disable scripts
+
+### Changed
+- Rewrote `install.sh` with plugin-based architecture
+- Interactive menu now dynamically generated from plugin registry
+- CLI commands dynamically loaded from registry
+- Documentation updated with plugin system usage
+
+---
+
 ## [1.1.0] - 2024-12-11
 
 ### Changed

@@ -53,8 +53,12 @@ vps-tools health
 ```
 vps-tools-bash/
 ├── vps-build.sh                    # Main provisioning script
-├── install.sh                      # Installer
+├── install.sh                      # Installer with plugin support
+├── plugins.conf.default            # Default plugin registry
 ├── vps-tools-cron.conf             # Cron configuration
+│
+├── custom/                         # User custom scripts (gitignored)
+│   └── README.md
 │
 ├── monitoring/
 │   ├── vps-health-monitor.sh       # System health
@@ -105,6 +109,29 @@ vps-tools logins          # Failed login analysis
 ```
 
 **→ See [Usage Guide](USAGE.md) for all commands and options.**
+
+## 🔌 Plugin System
+
+Add, disable, or replace scripts through the plugin registry:
+
+```bash
+# List all enabled plugins
+vps-tools plugin list
+
+# Add custom script
+vps-tools plugin add my-backup custom/my-backup.sh "My backup script"
+
+# Disable a script
+vps-tools plugin disable ports
+
+# Enable a script
+vps-tools plugin enable ports
+```
+
+**Custom Scripts:**
+- Place in `/opt/vps-tools/custom/`
+- Register in `/etc/vps-tools/plugins.conf`
+- Survives updates (gitignored)
 
 ## ⏰ Automation
 

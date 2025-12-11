@@ -1,0 +1,4 @@
+# Ignore all files in custom/ except README
+*
+!README.md
+!.gitignore

@@ -1,0 +1,44 @@
+# VPS Tools - Plugin Registry
+# 
+# This file defines available commands and their script mappings.
+# Format: command:path:description:category:enabled
+#
+# To disable a script: set enabled to 'false'
+# To add custom scripts: add lines pointing to custom/ directory
+# To replace a script: change the path for an existing command
+#
+# Categories: provisioning, monitoring, security, docker, maintenance, orchestration, custom
+
+# === PROVISIONING ===
+build:vps-build.sh:Initial VPS setup and configuration:provisioning:true
+
+# === MONITORING ===
+health:monitoring/vps-health-monitor.sh:System health check (disk, memory, CPU):monitoring:true
+services:monitoring/vps-service-monitor.sh:Service status with auto-restart:monitoring:true
+logs:monitoring/vps-log-analyzer.sh:Log analysis for errors:monitoring:true
+backups:monitoring/vps-backup-verifier.sh:Backup status verification:monitoring:true
+
+# === SECURITY ===
+ssh-audit:security/vps-ssh-audit.sh:SSH key audit and rotation:security:true
+logins:security/vps-failed-login-reporter.sh:Failed login analysis:security:true
+ssl:security/vps-ssl-checker.sh:SSL certificate monitoring:security:true
+ports:security/vps-open-ports-auditor.sh:Open ports scanning:security:true
+
+# === DOCKER ===
+docker-health:docker/vps-docker-health.sh:Container health dashboard:docker:true
+docker-logs:docker/vps-docker-log-rotation.sh:Docker log rotation:docker:true
+docker-clean:docker/vps-docker-cleanup.sh:Docker resource cleanup:docker:true
+docker-backup:docker/vps-docker-backup-restore.sh:Container backup/restore:docker:true
+
+# === MAINTENANCE ===
+cleanup:maintenance/vps-automated-cleanup.sh:System cleanup:maintenance:true
+updates:maintenance/vps-package-updater.sh:Package update check:maintenance:true
+db-backup:maintenance/vps-database-backup.sh:Database backup:maintenance:true
+upgrade:maintenance/vps-system-upgrade.sh:System upgrade:maintenance:true
+
+# === ORCHESTRATION ===
+report:orchestration/vps-orchestration.sh:System report and orchestration:orchestration:true
+
+# === CUSTOM SCRIPTS ===
+# Add your custom scripts below. Example:
+# my-script:custom/my-script.sh:My custom script:custom:true
