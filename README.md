@@ -41,56 +41,89 @@ A comprehensive suite of bash scripts for provisioning, monitoring, securing, an
 
 ## Quick Start
 
-### Installation
+### Installation (System-Wide)
 
 ```bash
 # Clone repository
 git clone https://github.com/YOUR_USERNAME/vps-tools.git
 cd vps-tools
 
-# Make scripts executable
-chmod +x vps-build.sh
-chmod +x monitoring/*.sh
-chmod +x security/*.sh
-chmod +x docker/*.sh
-chmod +x maintenance/*.sh
-chmod +x orchestration/*.sh
+# Run installer (as root or with sudo)
+sudo bash install.sh
 
-# Optionally install to system path
-sudo cp -r . /opt/vps-tools
+# Verify installation
+vps-tools help
+```
+
+The installer:
+- Copies all scripts to `/opt/vps-tools`
+- Creates `/etc/vps-tools` config directory
+- Creates `/var/log/vps-tools` log directory
+- Installs `vps-tools` command for system-wide access
+- Creates convenient shortcuts
+
+### Using VPS Tools
+
+**Interactive Menu:**
+```bash
+vps-tools
+```
+
+**Direct Commands:**
+```bash
+vps-tools health                    # Quick health check
+vps-tools build                     # Initial VPS setup
+vps-tools docker-health             # Docker status
+vps-tools report                    # Full system report
+vps-tools help                      # Command reference
+```
+
+**With Arguments:**
+```bash
+sudo vps-tools health --check=docker
+sudo vps-tools ssl --warn-days=60
+sudo vps-tools report --email=admin@example.com
 ```
 
 ### Initial VPS Setup
 
 ```bash
-# Run main provisioning script
-sudo bash vps-build.sh
+# Interactive provisioning
+vps-tools build
 
-# Follow interactive prompts for:
-# - Hostname and timezone
-# - SSH configuration
-# - User creation with optional GitHub SSH keys
-# - Firewall setup
-# - Swap configuration
-# - Application selection
+# Or direct command
+sudo bash /opt/vps-tools/vps-build.sh
 ```
+
+Follow prompts for hostname, timezone, SSH, user, firewall, and application selection.
 
 ### Enable Automated Monitoring
 
 ```bash
-# Copy cron configuration
-sudo cp vps-tools-cron.conf /etc/cron.d/vps-tools
-sudo chmod 644 /etc/cron.d/vps-tools
+vps-tools
 
-# Edit for your environment
-sudo nano /etc/cron.d/vps-tools
+# Then select option 20: "Install Cron Jobs"
+```
+
+Or manually:
+```bash
+sudo cp /opt/vps-tools/vps-tools-cron.conf /etc/cron.d/vps-tools
+sudo nano /etc/cron.d/vps-tools  # Edit email
 ```
 
 ### Generate First Report
 
 ```bash
-sudo bash orchestration/vps-orchestration.sh --mode=report --email=admin@example.com
+vps-tools report --email=admin@example.com
 ```
+
+### Uninstall
+
+```bash
+sudo bash /opt/vps-tools/install.sh --uninstall
+```
+
+Removes scripts and cron jobs but keeps configs and logs.
 
 ## Directory Structure
 
