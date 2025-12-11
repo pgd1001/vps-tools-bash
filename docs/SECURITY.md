@@ -1,6 +1,8 @@
 # VPS Tools - Security Best Practices
 
-This document outlines security recommendations for VPS Tools deployments.
+Security recommendations and hardening guidelines for VPS Tools deployments.
+
+> **Related Docs:** [Quick Start](QUICK_START.md) | [Usage Guide](../USAGE.md) | [API Reference](API_REFERENCE.md)
 
 ## SSH Security
 

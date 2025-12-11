@@ -1,6 +1,8 @@
 # Contributing to VPS Tools
 
-Thank you for your interest in contributing to VPS Tools! This document provides guidelines for contributing to this project.
+Guidelines for contributing to the VPS Tools project.
+
+> **Related Docs:** [README](README.md) | [Usage Guide](USAGE.md) | [Changelog](CHANGELOG.md)
 
 ## Getting Started
 

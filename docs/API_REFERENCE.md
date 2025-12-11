@@ -1,389 +1,253 @@
 # VPS Tools - API Reference
 
-Complete reference for all VPS Tools scripts and their command-line options.
+Complete CLI reference for all VPS Tools scripts.
+
+> **Related Docs:** [Quick Start](QUICK_START.md) | [Usage Guide](../USAGE.md) | [Security Guide](SECURITY.md)
 
 ---
 
-## Table of Contents
+## Command Dispatcher
 
-- [Core Scripts](#core-scripts)
-- [Monitoring Scripts](#monitoring-scripts)
-- [Security Scripts](#security-scripts)
-- [Docker Scripts](#docker-scripts)
-- [Maintenance Scripts](#maintenance-scripts)
-- [Orchestration Scripts](#orchestration-scripts)
-- [Configuration Files](#configuration-files)
+The `vps-tools` command provides unified access to all scripts:
+
+```bash
+vps-tools [command] [options]
+```
+
+### Available Commands
+
+| Command | Script | Description |
+|---------|--------|-------------|
+| `build` | vps-build.sh | VPS provisioning |
+| `health` | vps-health-monitor.sh | System health |
+| `services` | vps-service-monitor.sh | Service status |
+| `logs` | vps-log-analyzer.sh | Log analysis |
+| `backups` | vps-backup-verifier.sh | Backup status |
+| `ssh-audit` | vps-ssh-audit.sh | SSH key audit |
+| `logins` | vps-failed-login-reporter.sh | Login analysis |
+| `ssl` | vps-ssl-checker.sh | SSL monitoring |
+| `ports` | vps-open-ports-auditor.sh | Port scanning |
+| `docker-health` | vps-docker-health.sh | Container health |
+| `docker-logs` | vps-docker-log-rotation.sh | Log rotation |
+| `docker-clean` | vps-docker-cleanup.sh | Docker cleanup |
+| `docker-backup` | vps-docker-backup-restore.sh | Container backup |
+| `cleanup` | vps-automated-cleanup.sh | System cleanup |
+| `updates` | vps-package-updater.sh | Package updates |
+| `db-backup` | vps-database-backup.sh | Database backup |
+| `upgrade` | vps-system-upgrade.sh | System upgrade |
+| `report` | vps-orchestration.sh | Full report |
 
 ---
 
-## Core Scripts
+## Script Reference
 
-### install.sh
+### Monitoring Scripts
 
-System-wide installation and uninstallation.
+#### vps-health-monitor.sh
 
 ```
-Usage: sudo bash install.sh [--uninstall]
-
 Options:
-  (none)       Install VPS Tools to /opt/vps-tools
-  --uninstall  Remove VPS Tools (keeps configs and logs)
-
-Installs:
-  /opt/vps-tools/        All scripts
-  /etc/vps-tools/        Configuration directory
-  /var/log/vps-tools/    Log directory
-  /usr/local/bin/vps-tools   Command dispatcher
-```
-
-### vps-build.sh
-
-VPS provisioning and configuration.
-
-```
-Usage: sudo bash vps-build.sh
-
-Modes:
-  1) Fresh install     Complete provisioning
-  2) Reconfigure       Modify specific settings
-  3) Troubleshoot      Status review and fixes
-
-Interactive prompts for:
-  - Hostname and timezone
-  - SSH port and security
-  - User creation
-  - GitHub SSH keys
-  - UFW firewall
-  - Swap configuration
-  - Application installation
-```
-
----
-
-## Monitoring Scripts
-
-### vps-health-monitor.sh
-
-```
-Usage: sudo bash vps-health-monitor.sh [OPTIONS]
-
-Options:
-  --check=RESOURCE      Check specific resource only
+  --check=RESOURCE      Check specific resource
                         Values: disk, memory, cpu, services, docker,
                                ssh, firewall, logins, ssl, updates, swap
-  --alert-email=EMAIL   Send alerts to email address
+  --alert-email=EMAIL   Send alerts to email
 
 Exit Codes:
   0   All checks passed
-  1   Warnings or critical issues found
+  1   Warnings or critical issues
 ```
 
-### vps-service-monitor.sh
+#### vps-service-monitor.sh
 
 ```
-Usage: sudo bash vps-service-monitor.sh [OPTIONS]
-
 Options:
-  --config=PATH        Path to custom config file
-  --dry-run           Show what would happen without making changes
-  --alert-email=EMAIL  Send alerts on restart/failure
+  --config=PATH        Custom config file
+  --dry-run            No changes, show only
+  --alert-email=EMAIL  Send alerts
 
 Config: /etc/vps-tools/service-monitor.conf
 ```
 
-### vps-log-analyzer.sh
+#### vps-log-analyzer.sh
 
 ```
-Usage: sudo bash vps-log-analyzer.sh [OPTIONS]
-
 Options:
-  --days=N            Analyze last N days (default: 7)
-  --type=TYPE         Log type to analyze
-                      Values: auth, service, system, all (default)
-  --alert-email=EMAIL Send alerts if issues found
+  --days=N             Days to analyze (default: 7)
+  --type=TYPE          auth, service, system, all
+  --alert-email=EMAIL  Send alerts
 ```
 
-### vps-backup-verifier.sh
+#### vps-backup-verifier.sh
 
 ```
-Usage: sudo bash vps-backup-verifier.sh [OPTIONS]
-
 Options:
-  --config=PATH       Path to custom config file
-  --verify-all        Verify backup checksums
-  --alert-email=EMAIL Send alerts on issues
+  --config=PATH        Custom config file
+  --verify-all         Verify checksums
+  --alert-email=EMAIL  Send alerts
 
 Config: /etc/vps-tools/backup-verifier.conf
 ```
 
 ---
 
-## Security Scripts
+### Security Scripts
 
-### vps-ssh-audit.sh
+#### vps-ssh-audit.sh
 
 ```
-Usage: sudo bash vps-ssh-audit.sh [OPTIONS]
-
 Options:
-  --audit               Audit all SSH keys (default)
-  --rotate-user=USER    Generate new keys for user
-  --alert-email=EMAIL   Send alerts on security issues
+  --audit              Audit all SSH keys (default)
+  --rotate-user=USER   Generate new keys
+  --alert-email=EMAIL  Send alerts
 ```
 
-### vps-failed-login-reporter.sh
+#### vps-failed-login-reporter.sh
 
 ```
-Usage: sudo bash vps-failed-login-reporter.sh [OPTIONS]
-
 Options:
-  --days=N             Analyze last N days (default: 7)
-  --threshold=N        Alert threshold for attempts (default: 10)
-  --block-ips          Automatically block suspicious IPs
-  --alert-email=EMAIL  Send alerts on suspicious activity
-
-Blocked IPs: /etc/vps-tools/blocked-ips.txt
+  --days=N             Days to analyze (default: 7)
+  --threshold=N        Alert threshold (default: 10)
+  --block-ips          Block suspicious IPs
+  --alert-email=EMAIL  Send alerts
 ```
 
-### vps-ssl-checker.sh
+#### vps-ssl-checker.sh
 
 ```
-Usage: sudo bash vps-ssl-checker.sh [OPTIONS]
-
 Options:
-  --warn-days=N       Days before expiry to warn (default: 30)
-  --alert-email=EMAIL Send alerts on expiring certificates
-
-Checks:
-  - /etc/letsencrypt/live/
-  - /etc/docker/certs.d/
-  - /etc/nginx/certs/
-  - /etc/apache2/certs/
+  --warn-days=N        Warning threshold (default: 30)
+  --alert-email=EMAIL  Send alerts
 ```
 
-### vps-open-ports-auditor.sh
+#### vps-open-ports-auditor.sh
 
 ```
-Usage: sudo bash vps-open-ports-auditor.sh [OPTIONS]
-
 Options:
-  --expected-ports=LIST  Comma-separated expected ports (e.g., 22,80,443)
-  --scan-external        Perform external port scan (requires nmap)
-  --alert-email=EMAIL    Send alerts on unexpected ports
+  --expected-ports=LIST  Comma-separated expected ports
+  --scan-external        External port scan (requires nmap)
+  --alert-email=EMAIL    Send alerts
 ```
 
 ---
 
-## Docker Scripts
+### Docker Scripts
 
-### vps-docker-health.sh
+#### vps-docker-health.sh
 
 ```
-Usage: sudo bash vps-docker-health.sh [OPTIONS]
-
 Options:
-  --interval=N          Refresh interval in seconds (default: 60)
-  --restart-unhealthy   Automatically restart unhealthy containers
-  --alert-email=EMAIL   Send alerts on issues
-
-Note: Runs continuously until Ctrl+C
+  --interval=N          Refresh interval (default: 60s)
+  --restart-unhealthy   Auto-restart unhealthy containers
+  --alert-email=EMAIL   Send alerts
 ```
 
-### vps-docker-cleanup.sh
+#### vps-docker-cleanup.sh
 
 ```
-Usage: sudo bash vps-docker-cleanup.sh [OPTIONS]
-
 Options:
-  --dry-run      Show what would be removed without removing
-  --aggressive   Also remove stopped containers
-  --prune-all    Full system prune (removes all unused)
-
-Cleanup order:
-  1. Dangling images
-  2. Unused images
-  3. Unused volumes
-  4. Unused networks
-  5. Stopped containers (--aggressive)
-  6. Build cache
-  7. System prune (--prune-all)
+  --dry-run       Show what would be removed
+  --aggressive    Also remove stopped containers
+  --prune-all     Full system prune
 ```
 
-### vps-docker-log-rotation.sh
+#### vps-docker-log-rotation.sh
 
 ```
-Usage: sudo bash vps-docker-log-rotation.sh [OPTIONS]
-
 Options:
-  --max-size=SIZE   Maximum log size (default: 100m)
-  --max-file=N      Maximum log files to keep (default: 5)
-  --apply           Apply configuration changes
-  --alert-email=EMAIL Send alerts on issues
-
-Config: /etc/docker/daemon.json
+  --max-size=SIZE   Max log size (default: 100m)
+  --max-file=N      Max files (default: 5)
+  --apply           Apply changes
+  --alert-email=EMAIL  Send alerts
 ```
 
-### vps-docker-backup-restore.sh
+#### vps-docker-backup-restore.sh
 
 ```
-Usage: sudo bash vps-docker-backup-restore.sh --mode=MODE [OPTIONS]
-
-Modes:
-  backup    Create backup
-  restore   Restore from backup
-  status    Show backup inventory
-
 Options:
-  --containers=LIST      Container names or 'all' (default: all)
-  --volumes=LIST         Volume names or 'all'
-  --backup-dir=PATH      Backup directory (default: /opt/backups)
-  --backup-file=PATH     Backup file for restore
-  --retention-days=N     Days to keep backups (default: 30)
-  --alert-email=EMAIL    Send notification on completion
+  --mode=MODE           backup, restore, status (required)
+  --containers=LIST     Container names or 'all'
+  --volumes=LIST        Volume names or 'all'
+  --backup-dir=PATH     Backup directory
+  --backup-file=PATH    Backup file for restore
+  --retention-days=N    Days to keep (default: 30)
+  --alert-email=EMAIL   Send notification
 ```
 
 ---
 
-## Maintenance Scripts
+### Maintenance Scripts
 
-### vps-automated-cleanup.sh
+#### vps-automated-cleanup.sh
 
 ```
-Usage: sudo bash vps-automated-cleanup.sh [OPTIONS]
-
 Options:
-  --dry-run      Show what would be removed
-  --aggressive   Enable all cleanup operations
-
-Cleanup targets:
-  - Rotated logs (>30 days)
-  - Journal logs (>2 weeks)
-  - Temp files (>7 days)
-  - APT cache
-  - Broken symlinks
-  - Core dumps (--aggressive)
-  - Old backups (--aggressive)
+  --dry-run       Show what would be removed
+  --aggressive    Enable all cleanup
 ```
 
-### vps-package-updater.sh
+#### vps-package-updater.sh
 
 ```
-Usage: sudo bash vps-package-updater.sh [OPTIONS]
-
 Options:
-  --check           Check for available updates (default)
-  --update-system   Upgrade system packages
-  --update-docker   Update Docker and pull images
-  --alert-email=EMAIL Send alerts on security updates
+  --check           Check updates (default)
+  --update-system   Upgrade packages
+  --update-docker   Update Docker
+  --alert-email=EMAIL  Send alerts
 ```
 
-### vps-database-backup.sh
+#### vps-database-backup.sh
 
 ```
-Usage: sudo bash vps-database-backup.sh [OPTIONS]
-
 Options:
-  --type=TYPE        Database type
-                     Values: all (default), postgresql, mysql, mongodb
-  --backup-dir=PATH  Backup directory (default: /opt/backups)
-  --retention=N      Days to keep backups (default: 30)
-  --alert-email=EMAIL Send notification on completion
-
-Backup locations:
-  /opt/backups/postgresql/
-  /opt/backups/mysql/
-  /opt/backups/mongodb/
+  --type=TYPE        all, postgresql, mysql, mongodb
+  --backup-dir=PATH  Backup directory
+  --retention=N      Days to keep (default: 30)
+  --alert-email=EMAIL  Send notification
 ```
 
-### vps-system-upgrade.sh
+#### vps-system-upgrade.sh
 
 ```
-Usage: sudo bash vps-system-upgrade.sh [OPTIONS]
-
 Options:
   --dry-run            Show what would happen
-  --backup             Create backup before upgrade
-  --skip-docker-pull   Skip Docker image updates
-
-Process:
-  1. Pre-flight checks (disk space, services)
-  2. Backup (optional)
-  3. Stop services
-  4. Upgrade packages
-  5. Restart services
-  6. Verify health
+  --backup             Create backup first
+  --skip-docker-pull   Skip image updates
 ```
 
 ---
 
-## Orchestration Scripts
+### Orchestration
 
-### vps-orchestration.sh
+#### vps-orchestration.sh
 
 ```
-Usage: sudo bash vps-orchestration.sh --mode=MODE [OPTIONS]
-
-Modes:
-  report    Run monitoring + security audits (default)
-  monitor   Run monitoring tasks only
-  maintain  Run maintenance tasks only
-  full      Run all tasks + cleanup
-
 Options:
-  --email=EMAIL  Send report via email
-
-Report: /tmp/vps-system-report-TIMESTAMP.txt
+  --mode=MODE      report, monitor, maintain, full
+  --email=EMAIL    Send report via email
 ```
 
 ---
 
 ## Configuration Files
 
-### /etc/vps-tools/service-monitor.conf
+| File | Purpose |
+|------|---------|
+| `/etc/vps-tools/service-monitor.conf` | Services to monitor |
+| `/etc/vps-tools/backup-verifier.conf` | Backup locations |
+| `/etc/docker/daemon.json` | Docker log settings |
 
-```bash
-# Service monitoring format: "name:type:max_restarts:delay"
-SERVICES=(
-    "ssh:systemd:0:60"
-    "docker:systemd:3:120"
-)
+---
 
-# Container monitoring format: "name:max_restarts:delay"
-DOCKER_CONTAINERS=(
-    "coolify:3:120"
-)
-```
+## Log Files
 
-### /etc/vps-tools/backup-verifier.conf
+All logs: `/var/log/vps-tools/`
 
-```bash
-# Backup locations format: "path:type:retention:max_age"
-BACKUP_LOCATIONS=(
-    "/opt/backups:archive:720:168"
-)
-
-# Docker volumes format: "volume:backup_path"
-DOCKER_VOLUMES=(
-    "portainer_data:/opt/backups/portainer"
-)
-
-# Databases format: "type:name:backup_path"
-DATABASES=(
-    "postgresql:postgres:/opt/backups/postgres"
-)
-```
-
-### /etc/docker/daemon.json
-
-```json
-{
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m",
-    "max-file": "5"
-  }
-}
-```
+| Log | Script |
+|-----|--------|
+| `health-cron.log` | vps-health-monitor.sh |
+| `docker-health.log` | vps-docker-health.sh |
+| `cleanup.log` | vps-automated-cleanup.sh |
+| `database-backup.log` | vps-database-backup.sh |
 
 ---
 
@@ -391,30 +255,8 @@ DATABASES=(
 
 | Code | Meaning |
 |------|---------|
-| 0 | Success / No issues |
-| 1 | Warnings or errors found |
-| 2 | Configuration error |
+| 0 | Success |
+| 1 | Warnings/errors |
+| 2 | Config error |
 | 126 | Permission denied |
 | 127 | Command not found |
-
-## Log Files
-
-All scripts log to `/var/log/vps-tools/`:
-
-| Log File | Script |
-|----------|--------|
-| `health-cron.log` | vps-health-monitor.sh |
-| `service-monitor.log` | vps-service-monitor.sh |
-| `backup-verifier.log` | vps-backup-verifier.sh |
-| `ssh-audit.log` | vps-ssh-audit.sh |
-| `failed-login-report.log` | vps-failed-login-reporter.sh |
-| `ssl-checker.log` | vps-ssl-checker.sh |
-| `ports-audit.log` | vps-open-ports-auditor.sh |
-| `docker-health.log` | vps-docker-health.sh |
-| `docker-cleanup.log` | vps-docker-cleanup.sh |
-| `docker-logs.log` | vps-docker-log-rotation.sh |
-| `docker-backup.log` | vps-docker-backup-restore.sh |
-| `cleanup.log` | vps-automated-cleanup.sh |
-| `package-updates.log` | vps-package-updater.sh |
-| `database-backup.log` | vps-database-backup.sh |
-| `system-upgrade.log` | vps-system-upgrade.sh |
