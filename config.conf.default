@@ -1,0 +1,56 @@
+# VPS Tools Configuration
+# Edit this file to customize VPS Tools behavior
+# Location: /etc/vps-tools/config.conf
+
+# === NOTIFICATIONS ===
+# Email address for alerts (leave empty to disable)
+ALERT_EMAIL=
+
+# Webhook URL for notifications (Slack, Discord, Teams, or generic)
+WEBHOOK_URL=
+
+# Webhook type: slack, discord, teams, generic
+WEBHOOK_TYPE=generic
+
+# === THRESHOLDS ===
+# Disk usage warning threshold (percentage)
+DISK_WARN_THRESHOLD=80
+
+# Disk usage critical threshold (percentage)
+DISK_CRIT_THRESHOLD=90
+
+# Memory usage warning threshold (percentage)
+MEMORY_WARN_THRESHOLD=75
+
+# Memory usage critical threshold (percentage)
+MEMORY_CRIT_THRESHOLD=85
+
+# CPU load warning threshold (percentage of cores)
+CPU_WARN_THRESHOLD=80
+
+# Failed login alert threshold
+LOGIN_FAIL_THRESHOLD=10
+
+# SSL certificate warning days before expiry
+SSL_WARN_DAYS=30
+
+# === API SERVER ===
+# REST API port (default 8080)
+API_PORT=8080
+
+# API authentication token (generate with: openssl rand -hex 32)
+API_TOKEN=
+
+# Bind address (127.0.0.1 for localhost only, 0.0.0.0 for all)
+API_BIND=127.0.0.1
+
+# === BACKUP ===
+# Default backup directory
+BACKUP_DIR=/opt/backups
+
+# Backup retention days
+BACKUP_RETENTION=30
+
+# === OUTPUT ===
+# Default output format: text or json
+DEFAULT_OUTPUT=text

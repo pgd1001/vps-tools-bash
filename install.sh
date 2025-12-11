@@ -57,6 +57,14 @@ install() {
         log_warning "Plugin registry exists - keeping user customizations"
     fi
     
+    # Install config.conf if not exists (preserve user customizations)
+    if [[ ! -f "$CONFIG_DIR/config.conf" ]]; then
+        log_info "Creating configuration file..."
+        cp "$INSTALL_DIR/config.conf.default" "$CONFIG_DIR/config.conf"
+    else
+        log_warning "Config file exists - keeping user customizations"
+    fi
+    
     # Create main dispatcher script with plugin support
     log_info "Creating dispatcher script..."
     cat > "$BIN_DIR/vps-tools" << 'DISPATCHER'
@@ -66,6 +74,7 @@ set -euo pipefail
 readonly TOOLS_DIR="/opt/vps-tools"
 readonly CONFIG_DIR="/etc/vps-tools"
 readonly PLUGINS_FILE="$CONFIG_DIR/plugins.conf"
+readonly CONFIG_FILE="$CONFIG_DIR/config.conf"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -296,6 +305,65 @@ plugin_manager() {
     esac
 }
 
+config_manager() {
+    local action="${1:-list}"
+    shift || true
+    
+    case "$action" in
+        list)
+            echo -e "${BLUE}=== VPS Tools Configuration ===${NC}"
+            if [[ -f "$CONFIG_FILE" ]]; then
+                grep -v '^#' "$CONFIG_FILE" | grep -v '^$' | while IFS= read -r line; do
+                    local key="${line%%=*}"
+                    local value="${line#*=}"
+                    printf "  %-25s = %s\n" "$key" "$value"
+                done
+            else
+                echo "Config file not found: $CONFIG_FILE"
+            fi
+            ;;
+        
+        get)
+            local key="${1:-}"
+            if [[ -z "$key" ]]; then
+                echo "Usage: vps-tools config get <KEY>"
+                return 1
+            fi
+            if [[ -f "$CONFIG_FILE" ]]; then
+                grep "^$key=" "$CONFIG_FILE" | cut -d= -f2-
+            fi
+            ;;
+        
+        set)
+            local key="${1:-}"
+            local value="${2:-}"
+            if [[ -z "$key" ]]; then
+                echo "Usage: vps-tools config set <KEY> <VALUE>"
+                return 1
+            fi
+            if [[ -f "$CONFIG_FILE" ]]; then
+                if grep -q "^$key=" "$CONFIG_FILE"; then
+                    sed -i "s|^$key=.*|$key=$value|" "$CONFIG_FILE"
+                    echo -e "${GREEN}[✓]${NC} Updated: $key=$value"
+                else
+                    echo "$key=$value" >> "$CONFIG_FILE"
+                    echo -e "${GREEN}[✓]${NC} Added: $key=$value"
+                fi
+            else
+                echo -e "${RED}[✗]${NC} Config file not found"
+                return 1
+            fi
+            ;;
+        
+        *)
+            echo "Config Manager Commands:"
+            echo "  vps-tools config list          List all settings"
+            echo "  vps-tools config get KEY       Get setting value"
+            echo "  vps-tools config set KEY VAL   Set setting value"
+            ;;
+    esac
+}
+
 show_help() {
     echo "VPS Tools - Plugin-based VPS Management"
     echo
@@ -312,11 +380,22 @@ show_help() {
     echo "  plugin enable      Enable a plugin"
     echo "  plugin disable     Disable a plugin"
     echo
+    echo "Configuration:"
+    echo "  config list        List all settings"
+    echo "  config get KEY     Get setting value"
+    echo "  config set KEY VAL Set setting value"
+    echo
+    echo "API Server:"
+    echo "  api start          Start REST API server"
+    echo "  api stop           Stop REST API server"
+    echo "  api status         Show API server status"
+    echo
     echo "Other:"
     echo "  help               Show this help"
     echo
     echo "Plugin registry: $PLUGINS_FILE"
     echo "Custom scripts: $TOOLS_DIR/custom/"
+    echo "Config file: $CONFIG_FILE"
 }
 
 interactive_menu() {
@@ -376,6 +455,14 @@ if [[ $# -gt 0 ]]; then
         plugin)
             shift
             plugin_manager "$@"
+            ;;
+        config)
+            shift
+            config_manager "$@"
+            ;;
+        api)
+            shift
+            sudo bash "$TOOLS_DIR/api/vps-api-server.sh" "$@"
             ;;
         *)
             run_plugin "$@"
