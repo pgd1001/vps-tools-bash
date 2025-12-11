@@ -19,7 +19,7 @@ Get VPS Tools up and running in 5 minutes.
 ssh root@your-server-ip
 
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/vps-tools-bash.git
+git clone https://github.com/pgd1001/vps-tools-bash.git
 cd vps-tools-bash
 
 # Install

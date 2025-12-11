@@ -32,7 +32,7 @@ A comprehensive suite of bash scripts for provisioning, monitoring, securing, an
 
 ```bash
 # Clone and install
-git clone https://github.com/YOUR_USERNAME/vps-tools-bash.git
+git clone https://github.com/pgd1001/vps-tools-bash.git
 cd vps-tools-bash
 sudo bash install.sh
 

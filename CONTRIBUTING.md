@@ -17,7 +17,7 @@ Guidelines for contributing to the VPS Tools project.
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/vps-tools-bash.git
+git clone https://github.com/pgd1001/vps-tools-bash.git
 cd vps-tools-bash
 
 # Make scripts executable
