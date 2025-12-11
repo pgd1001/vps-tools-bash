@@ -1,0 +1,169 @@
+# Docker Compose configuration for VPS Tools
+# This file defines complete development and production setup
+
+version: '3.8'
+
+services:
+  # Main VPS Tools application
+  vps-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-dev}
+        BUILD_TIME: ${BUILD_TIME:-}
+        GIT_COMMIT: ${GIT_COMMIT:-}
+    container_name: vps-tools
+    restart: unless-stopped
+    environment:
+      - VPS_TOOLS_CONFIG=/opt/vps-tools/config/config.yaml
+      - VPS_TOOLS_DATA_PATH=/opt/vps-tools/data
+      - VPS_TOOLS_LOG_PATH=/opt/vps-tools/logs
+    volumes:
+      - vps-tools-config:/opt/vps-tools/config
+      - vps-tools-data:/opt/vps-tools/data
+      - vps-tools-logs:/opt/vps-tools/logs
+      - vps-tools-backups:/opt/vps-tools/backups
+      - vps-tools-ssh:/opt/vps-tools/.ssh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:8080"  # Web interface (if implemented)
+    networks:
+      - vps-tools-network
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "/opt/vps-tools/vps-tools", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database (optional - for enhanced features)
+  postgres:
+    image: postgres:15-alpine
+    container_name: vps-tools-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vps_tools
+      POSTGRES_USER: vps_tools
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vps_tools_password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - vps-tools-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vps_tools -d vps_tools"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache (optional - for caching and session storage)
+  redis:
+    image: redis:7-alpine
+    container_name: vps-tools-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis-data:/data
+    networks:
+      - vps-tools-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Nginx reverse proxy (optional - for web interface)
+  nginx:
+    image: nginx:alpine
+    container_name: vps-tools-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    networks:
+      - vps-tools-network
+    depends_on:
+      - vps-tools
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana for monitoring dashboards (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vps-tools-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - vps-tools-network
+    depends_on:
+      - postgres
+
+  # Prometheus for metrics collection (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vps-tools-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - vps-tools-network
+
+# Networks
+networks:
+  vps-tools-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volumes
+volumes:
+  vps-tools-config:
+    driver: local
+  vps-tools-data:
+    driver: local
+  vps-tools-logs:
+    driver: local
+  vps-tools-backups:
+    driver: local
+  vps-tools-ssh:
+    driver: local
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  grafana-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  nginx-logs:
+    driver: local

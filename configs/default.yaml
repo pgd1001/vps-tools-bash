@@ -1,0 +1,135 @@
+# vps-tools Default Configuration
+# This file contains default settings for vps-tools application
+
+app:
+  name: "vps-tools"
+  version: "1.0.0"
+  log_level: "info"           # debug, info, warn, error
+  log_format: "text"          # json, text
+  max_workers: 10             # Maximum concurrent workers
+  timeout: 300                # Default timeout in seconds
+
+# Server inventory configuration
+servers:
+  # Example servers - add your actual servers here
+  - id: "localhost"
+    name: "Local Development Server"
+    host: "127.0.0.1"
+    port: 22
+    user: "root"
+    auth_method:
+      type: "ssh_agent"        # ssh_agent, private_key, password
+      use_agent: true
+    tags: ["local", "development"]
+    meta:
+      environment: "development"
+      role: "testing"
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  interval: "5m"               # Health check interval
+  thresholds:
+    disk_warning: 80           # Disk usage warning percentage
+    disk_critical: 90          # Disk usage critical percentage
+    memory_warning: 75         # Memory usage warning percentage
+    memory_critical: 85        # Memory usage critical percentage
+    cpu_warning: 80            # CPU usage warning percentage
+    cpu_critical: 95           # CPU usage critical percentage
+    load_warning: 2.0           # Load average warning
+    load_critical: 4.0          # Load average critical
+  checks:                      # Which health checks to run
+    - "disk"
+    - "memory"
+    - "cpu"
+    - "services"
+    - "docker"
+  retention:
+    health_checks: "7d"        # Keep health checks for 7 days
+    jobs: "30d"                 # Keep job history for 30 days
+    audit_logs: "90d"           # Keep audit logs for 90 days
+
+# Security configuration
+security:
+  ssh_audit_enabled: true        # Enable SSH key auditing
+  failed_login_threshold: 10    # Alert on this many failed logins
+  ssl_warning_days: 30          # Warn before SSL cert expiration
+  port_scan_enabled: true       # Enable port scanning
+  auto_block_ips: false         # Auto-block suspicious IPs
+  key_rotation_days: 90         # SSH key rotation interval
+  require_known_hosts: true     # Require known_hosts file
+
+# Docker configuration
+docker:
+  enabled: true
+  socket: "/var/run/docker.sock"
+  api_version: "1.41"
+  timeout: 30
+  log_rotation:
+    max_size: "100m"           # Maximum log file size
+    max_files: 5                # Number of log files to keep
+    driver: "json-file"          # Log driver
+  cleanup:
+    enabled: true
+    schedule: "0 4 * * *"     # Daily at 4 AM
+    aggressive: false            # Remove stopped containers
+    prune_images: false         # Remove unused images
+    max_age: "7d"             # Maximum age for cleanup
+  backup:
+    enabled: true
+    schedule: "0 23 * * 1"    # Weekly on Monday at 11 PM
+    backup_dir: "/opt/backups/docker"
+    compression: true
+    retention: "30d"
+
+# Alerting configuration
+alerts:
+  enabled: true
+  email: "admin@example.com"     # Email for alerts
+  webhook_url: ""               # Webhook URL for alerts
+  slack:
+    enabled: false
+    webhook: ""                  # Slack webhook URL
+    channel: "#alerts"
+    username: "vps-tools"
+  webhook:
+    enabled: false
+    url: ""                      # Generic webhook URL
+    method: "POST"
+    headers: {}
+    timeout: 30
+    retries: 3
+  thresholds:
+    failure_count: 3             # Alert after N consecutive failures
+    disk_usage: 85              # Alert at this disk usage percentage
+    memory_usage: 80            # Alert at this memory usage percentage
+    cpu_usage: 90               # Alert at this CPU usage percentage
+    response_time: 5000          # Alert at this response time (ms)
+
+# Storage configuration
+storage:
+  type: "bolt"                 # bolt, sqlite, postgres
+  bolt_db_path: "~/.config/vps-tools/vps-tools.db"
+  sqlite_path: "~/.config/vps-tools/vps-tools.sqlite"
+  postgres:
+    host: "localhost"
+    port: 5432
+    database: "vps_tools"
+    username: "vps_tools"
+    password: ""
+    ssl_mode: "disable"
+  backup_enabled: true
+  backup_path: "~/.config/vps-tools/backups"
+  backup_schedule: "0 2 * * *"  # Daily at 2 AM
+
+# SSH client configuration
+ssh:
+  default_user: "root"
+  default_port: 22
+  timeout: 30                  # Connection timeout in seconds
+  max_retries: 3               # Maximum connection retries
+  retry_delay: 5                # Delay between retries (seconds)
+  keep_alive: 30               # Keep alive interval (seconds)
+  strict_host_key: true         # Strict host key checking
+  known_hosts_file: "~/.ssh/known_hosts"
+  private_key_path: "~/.ssh/id_rsa"

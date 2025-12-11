@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPS Tools Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .status-healthy { color: #10b981; }
+        .status-warning { color: #f59e0b; }
+        .status-critical { color: #ef4444; }
+        .status-offline { color: #6b7280; }
+        
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .server-card {
+            border-left: 4px solid #10b981;
+        }
+        .server-card.warning {
+            border-left-color: #f59e0b;
+        }
+        .server-card.critical {
+            border-left-color: #ef4444;
+        }
+        .server-card.offline {
+            border-left-color: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-server text-indigo-600 text-2xl mr-3"></i>
+                    <h1 class="text-xl font-semibold text-gray-900">VPS Tools Dashboard</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500" id="lastUpdate">Last updated: --</span>
+                    <button onclick="refreshData()" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="metric-card text-white p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white/80 text-sm">Total Servers</p>
+                        <p class="text-3xl font-bold" id="totalServers">--</p>
+                    </div>
+                    <i class="fas fa-server text-white/50 text-3xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-green-500 text-white p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-100 text-sm">Healthy Servers</p>
+                        <p class="text-3xl font-bold" id="healthyServers">--</p>
+                    </div>
+                    <i class="fas fa-check-circle text-green-200 text-3xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-yellow-500 text-white p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-yellow-100 text-sm">Warning Servers</p>
+                        <p class="text-3xl font-bold" id="warningServers">--</p>
+                    </div>
+                    <i class="fas fa-exclamation-triangle text-yellow-200 text-3xl"></i>
+                </div>
+            </div>
+            
+            <div class="bg-red-500 text-white p-6 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-red-100 text-sm">Critical Servers</p>
+                        <p class="text-3xl font-bold" id="criticalServers">--</p>
+                    </div>
+                    <i class="fas fa-times-circle text-red-200 text-3xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- System Metrics Chart -->
+            <div class="bg-white p-6 rounded-lg shadow-lg card">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">System Metrics</h3>
+                <canvas id="systemMetricsChart" width="400" height="200"></canvas>
+            </div>
+            
+            <!-- Job Status Chart -->
+            <div class="bg-white p-6 rounded-lg shadow-lg card">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Job Status</h3>
+                <canvas id="jobStatusChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Servers Table -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Servers</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Server</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPU</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Memory</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disk</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uptime</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="serversTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Server rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Active Jobs -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Active Jobs</h3>
+            </div>
+            <div class="p-6" id="activeJobs">
+                <!-- Active jobs will be inserted here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let systemMetricsChart;
+        let jobStatusChart;
+        let refreshInterval;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            loadDashboardData();
+            startAutoRefresh();
+        });
+
+        // Initialize charts
+        function initializeCharts() {
+            // System Metrics Chart
+            const systemCtx = document.getElementById('systemMetricsChart').getContext('2d');
+            systemMetricsChart = new Chart(systemCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'CPU %',
+                            data: [],
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Memory %',
+                            data: [],
+                            borderColor: 'rgb(16, 185, 129)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Disk %',
+                            data: [],
+                            borderColor: 'rgb(245, 158, 11)',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Job Status Chart
+            const jobCtx = document.getElementById('jobStatusChart').getContext('2d');
+            jobStatusChart = new Chart(jobCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Running', 'Completed', 'Failed'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: [
+                            'rgb(59, 130, 246)',
+                            'rgb(16, 185, 129)',
+                            'rgb(239, 68, 68)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load overview data
+                const dashboardResponse = await fetch('/api/v1/dashboard');
+                const dashboardData = await dashboardResponse.json();
+                updateOverviewCards(dashboardData);
+
+                // Load servers data
+                const serversResponse = await fetch('/api/v1/servers');
+                const serversData = await serversResponse.json();
+                updateServersTable(serversData);
+
+                // Load jobs data
+                const jobsResponse = await fetch('/api/v1/jobs');
+                const jobsData = await jobsResponse.json();
+                updateJobsSection(jobsData);
+                updateJobStatusChart(jobsData);
+
+                // Update last update time
+                document.getElementById('lastUpdate').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Update overview cards
+        function updateOverviewCards(data) {
+            document.getElementById('totalServers').textContent = data.serverCount || 0;
+            
+            // Count servers by status (this would come from the actual API)
+            const healthyCount = 1;
+            const warningCount = 1;
+            const criticalCount = 1;
+            
+            document.getElementById('healthyServers').textContent = healthyCount;
+            document.getElementById('warningServers').textContent = warningCount;
+            document.getElementById('criticalServers').textContent = criticalCount;
+        }
+
+        // Update servers table
+        function updateServersTable(servers) {
+            const tbody = document.getElementById('serversTableBody');
+            tbody.innerHTML = '';
+
+            servers.forEach(server => {
+                const row = document.createElement('tr');
+                row.className = `server-card ${server.status}`;
+                
+                const statusClass = getStatusClass(server.status);
+                const statusIcon = getStatusIcon(server.status);
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">${server.name}</div>
+                                <div class="text-sm text-gray-500">${server.host}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="${statusClass} flex items-center">
+                            <i class="fas ${statusIcon} mr-2"></i>
+                            ${server.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: ${server.cpu}%"></div>
+                            </div>
+                            <span class="text-sm text-gray-900">${server.cpu}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                <div class="bg-green-600 h-2 rounded-full" style="width: ${server.memory}%"></div>
+                            </div>
+                            <span class="text-sm text-gray-900">${server.memory}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                <div class="bg-yellow-600 h-2 rounded-full" style="width: ${server.disk}%"></div>
+                            </div>
+                            <span class="text-sm text-gray-900">${server.disk}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${server.uptime}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${formatTime(server.lastSeen)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="viewServerDetails('${server.id}')" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="manageServer('${server.id}')" class="text-green-600 hover:text-green-900">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Update jobs section
+        function updateJobsSection(jobs) {
+            const container = document.getElementById('activeJobs');
+            
+            if (jobs.running && jobs.running.length > 0) {
+                container.innerHTML = jobs.running.map(job => `
+                    <div class="border-l-4 border-blue-500 pl-4 mb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-medium text-gray-900">${job.name}</h4>
+                                <p class="text-sm text-gray-600">${job.server} • ${job.type}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm text-blue-600 font-medium">${job.progress}%</span>
+                                <p class="text-xs text-gray-500">ETA: ${formatTime(job.eta)}</p>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: ${job.progress}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-gray-500">No active jobs</p>';
+            }
+        }
+
+        // Update job status chart
+        function updateJobStatusChart(jobs) {
+            const runningCount = jobs.running ? jobs.running.length : 0;
+            const completedCount = jobs.completed ? jobs.completed.length : 0;
+            const failedCount = jobs.failed ? jobs.failed.length : 0;
+            
+            jobStatusChart.data.datasets[0].data = [runningCount, completedCount, failedCount];
+            jobStatusChart.update();
+        }
+
+        // Helper functions
+        function getStatusClass(status) {
+            switch (status) {
+                case 'healthy': return 'status-healthy';
+                case 'warning': return 'status-warning';
+                case 'critical': return 'status-critical';
+                case 'offline': return 'status-offline';
+                default: return 'text-gray-500';
+            }
+        }
+
+        function getStatusIcon(status) {
+            switch (status) {
+                case 'healthy': return 'fa-check-circle';
+                case 'warning': return 'fa-exclamation-triangle';
+                case 'critical': return 'fa-times-circle';
+                case 'offline': return 'fa-minus-circle';
+                default: return 'fa-question-circle';
+            }
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        // Action functions
+        function refreshData() {
+            loadDashboardData();
+        }
+
+        function viewServerDetails(serverId) {
+            // Open server details modal or navigate to details page
+            console.log('View details for server:', serverId);
+        }
+
+        function manageServer(serverId) {
+            // Open server management modal or navigate to management page
+            console.log('Manage server:', serverId);
+        }
+
+        // Auto-refresh
+        function startAutoRefresh() {
+            refreshInterval = setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
