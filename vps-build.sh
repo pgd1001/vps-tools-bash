@@ -433,9 +433,9 @@ configure_ssh() {
         systemctl restart ssh
         log_success "SSH configured on port $SSH_PORT"
     else
-        log_error "SSH configuration error - reverting"
-        cp "$SSH_CONFIG.backup.$(date +%s | head -c10)" "$SSH_CONFIG"
-        systemctl restart ssh
+        log_error "SSH configuration error - manual recovery needed"
+        log_warning "Backup files are in: /etc/ssh/sshd_config.backup.*"
+        log_warning "Restore manually: cp /etc/ssh/sshd_config.backup.TIMESTAMP /etc/ssh/sshd_config"
         exit 1
     fi
 }
@@ -508,8 +508,15 @@ configure_auto_updates() {
 harden_system() {
     log_info "Applying system hardening..."
     
+    # Check if hardening already applied
+    if grep -q "# VPS-TOOLS HARDENING" /etc/sysctl.conf 2>/dev/null; then
+        log_warning "System hardening already applied - skipping"
+        return
+    fi
+    
     cat >> /etc/sysctl.conf << 'EOF'
 
+# VPS-TOOLS HARDENING - Added by vps-build.sh
 net.ipv4.ip_forward = 0
 net.ipv6.conf.all.forwarding = 0
 net.ipv4.conf.all.send_redirects = 0

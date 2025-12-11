@@ -72,7 +72,11 @@ check_memory_usage() {
     local total=$(echo "$mem_info" | awk '{print $2}')
     local used=$(echo "$mem_info" | awk '{print $3}')
     local available=$(echo "$mem_info" | awk '{print $7}')
-    local usage_percent=$(($(echo "$mem_info" | awk '{print $3}' | sed 's/G//') * 100 / $(echo "$mem_info" | awk '{print $2}' | sed 's/G//')))
+    
+    # Calculate usage percentage using bytes for accuracy
+    local mem_used_bytes=$(free -b | grep Mem | awk '{print $3}')
+    local mem_total_bytes=$(free -b | grep Mem | awk '{print $2}')
+    local usage_percent=$((mem_used_bytes * 100 / mem_total_bytes))
     
     if [[ $usage_percent -ge 85 ]]; then
         log_critical "Memory: $used/$total used ($usage_percent%)"
