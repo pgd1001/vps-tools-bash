@@ -1,7 +1,12 @@
 #!/bin/bash
 # VPS Tools - Common Library
 # Shared functions and utilities for all scripts
-# Source this in scripts: source "$TOOLS_DIR/lib/common.sh"
+# Source this in scripts: source "${TOOLS_DIR:-/opt/vps-tools}/lib/common.sh"
+
+set -euo pipefail
+
+# Version
+readonly VPS_TOOLS_VERSION="2.0.0"
 
 # Directories
 readonly VPS_TOOLS_DIR="${VPS_TOOLS_DIR:-/opt/vps-tools}"
@@ -12,24 +17,27 @@ readonly VPS_LOG_DIR="${VPS_LOG_DIR:-/var/log/vps-tools}"
 readonly VPS_CONFIG_FILE="$VPS_CONFIG_DIR/config.conf"
 readonly VPS_PLUGINS_FILE="$VPS_CONFIG_DIR/plugins.conf"
 
-# Load configuration
+# Load configuration safely (validates file ownership and permissions)
 load_config() {
     if [[ -f "$VPS_CONFIG_FILE" ]]; then
-        source "$VPS_CONFIG_FILE"
-    fi
-}
-
-# Ensure running as root
-require_root() {
-    if [[ $EUID -ne 0 ]]; then
-        echo "This script must be run as root" >&2
-        exit 1
+        # Only source config owned by root with no world-write
+        if [[ -O "$VPS_CONFIG_FILE" ]] || [[ $EUID -ne 0 ]]; then
+            source "$VPS_CONFIG_FILE"
+        else
+            local owner
+            owner=$(stat -c '%U' "$VPS_CONFIG_FILE" 2>/dev/null || echo "unknown")
+            if [[ "$owner" == "root" ]]; then
+                source "$VPS_CONFIG_FILE"
+            else
+                echo "[WARNING] Config file not owned by root ($owner), skipping" >&2
+            fi
+        fi
     fi
 }
 
 # Check if command exists
 command_exists() {
-    command -v "$1" &> /dev/null
+    command -v "$1" &>/dev/null
 }
 
 # Get system info
@@ -39,6 +47,7 @@ get_hostname() {
 
 get_os_version() {
     if [[ -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
         source /etc/os-release
         echo "$PRETTY_NAME"
     else
@@ -63,8 +72,10 @@ get_memory_usage() {
 
 # CPU load (1 minute average as percentage of cores)
 get_cpu_load() {
-    local cores=$(nproc 2>/dev/null || echo 1)
-    local load=$(cat /proc/loadavg 2>/dev/null | awk '{print $1}')
+    local cores
+    cores=$(nproc 2>/dev/null || echo 1)
+    local load
+    load=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo "0")
     echo "$load $cores" | awk '{printf "%.0f", ($1/$2)*100}'
 }
 
@@ -83,8 +94,9 @@ is_docker_available() {
 log_to_file() {
     local message="$1"
     local log_file="${2:-$VPS_LOG_DIR/vps-tools.log}"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
     mkdir -p "$(dirname "$log_file")"
     echo "[$timestamp] $message" >> "$log_file"
 }
