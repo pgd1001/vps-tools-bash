@@ -12,6 +12,7 @@ readonly LOG_FILE="$LOG_DIR/ssh-audit.log"
 
 readonly TOOLS_DIR="${TOOLS_DIR:-/opt/vps-tools}"
 source "${TOOLS_DIR}/lib/output.sh"
+source "${TOOLS_DIR}/lib/validate.sh"
 
 # Config
 ACTION="audit"
@@ -138,14 +139,16 @@ audit_root_ssh() {
 
 rotate_user_keys() {
     local user=$1
-    local user_home=$(eval echo ~"$user")
-    local ssh_dir="$user_home/.ssh"
-    local backup_dir="$ssh_dir/backups"
-    
+
     if ! id "$user" &>/dev/null; then
         log_error "User $user does not exist"
         return 1
     fi
+
+    local user_home
+    user_home=$(getent passwd "$user" | cut -d: -f6)
+    local ssh_dir="$user_home/.ssh"
+    local backup_dir="$ssh_dir/backups"
     
     log_info "=== SSH Key Rotation for $user ==="
     

@@ -74,6 +74,17 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# Inline validation (dispatcher can't source lib/)
+_validate_command_name() {
+    [[ "$1" =~ ^[a-zA-Z0-9_-]+$ ]]
+}
+_validate_path() {
+    [[ "$1" != *".."* ]] && [[ "$1" =~ ^[a-zA-Z0-9_./-]+$ ]]
+}
+_sanitize_for_sed() {
+    printf '%s' "$1" | sed 's/[\\\/&.*\[\]^$]/\\&/g'
+}
+
 # Load plugins from registry
 declare -A PLUGIN_COMMANDS
 declare -A PLUGIN_DESCRIPTIONS
@@ -243,13 +254,26 @@ plugin_manager() {
             local cmd="${1:-}"
             local path="${2:-}"
             local desc="${3:-Custom script}"
-            
+
             if [[ -z "$cmd" || -z "$path" ]]; then
                 echo "Usage: vps-tools plugin add <command> <path> [description]"
                 echo "Example: vps-tools plugin add my-backup custom/my-backup.sh 'My backup script'"
                 return 1
             fi
-            
+
+            if ! _validate_command_name "$cmd"; then
+                echo -e "${RED}[✗]${NC} Invalid command name: $cmd (alphanumeric, hyphens, underscores only)"
+                return 1
+            fi
+
+            if ! _validate_path "$path"; then
+                echo -e "${RED}[✗]${NC} Invalid path: $path"
+                return 1
+            fi
+
+            # Strip colons from description to prevent registry corruption
+            desc="${desc//:/}"
+
             if ! grep -q "^$cmd:" "$PLUGINS_FILE"; then
                 echo "$cmd:$path:$desc:custom:true" >> "$PLUGINS_FILE"
                 echo -e "${GREEN}[✓]${NC} Added plugin: $cmd -> $path"
@@ -264,8 +288,14 @@ plugin_manager() {
                 echo "Usage: vps-tools plugin enable <command>"
                 return 1
             fi
+            if ! _validate_command_name "$cmd"; then
+                echo -e "${RED}[✗]${NC} Invalid command name: $cmd"
+                return 1
+            fi
+            local safe_cmd
+            safe_cmd=$(_sanitize_for_sed "$cmd")
             if grep -q "^$cmd:" "$PLUGINS_FILE"; then
-                sed -i "s/^$cmd:\(.*\):false$/$cmd:\1:true/" "$PLUGINS_FILE"
+                sed -i "s/^${safe_cmd}:\(.*\):false$/${safe_cmd}:\1:true/" "$PLUGINS_FILE"
                 echo -e "${GREEN}[✓]${NC} Enabled: $cmd"
             else
                 echo -e "${RED}[✗]${NC} Plugin not found: $cmd"
@@ -278,8 +308,14 @@ plugin_manager() {
                 echo "Usage: vps-tools plugin disable <command>"
                 return 1
             fi
+            if ! _validate_command_name "$cmd"; then
+                echo -e "${RED}[✗]${NC} Invalid command name: $cmd"
+                return 1
+            fi
+            local safe_cmd
+            safe_cmd=$(_sanitize_for_sed "$cmd")
             if grep -q "^$cmd:" "$PLUGINS_FILE"; then
-                sed -i "s/^$cmd:\(.*\):true$/$cmd:\1:false/" "$PLUGINS_FILE"
+                sed -i "s/^${safe_cmd}:\(.*\):true$/${safe_cmd}:\1:false/" "$PLUGINS_FILE"
                 echo -e "${YELLOW}[⚠]${NC} Disabled: $cmd"
             else
                 echo -e "${RED}[✗]${NC} Plugin not found: $cmd"
@@ -332,9 +368,16 @@ config_manager() {
                 echo "Usage: vps-tools config set <KEY> <VALUE>"
                 return 1
             fi
+            if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+                echo -e "${RED}[✗]${NC} Invalid config key: $key"
+                return 1
+            fi
             if [[ -f "$CONFIG_FILE" ]]; then
-                if grep -q "^$key=" "$CONFIG_FILE"; then
-                    sed -i "s|^$key=.*|$key=$value|" "$CONFIG_FILE"
+                local safe_key safe_value
+                safe_key=$(_sanitize_for_sed "$key")
+                safe_value=$(_sanitize_for_sed "$value")
+                if grep -q "^${key}=" "$CONFIG_FILE"; then
+                    sed -i "s|^${safe_key}=.*|${safe_key}=${safe_value}|" "$CONFIG_FILE"
                     echo -e "${GREEN}[✓]${NC} Updated: $key=$value"
                 else
                     echo "$key=$value" >> "$CONFIG_FILE"

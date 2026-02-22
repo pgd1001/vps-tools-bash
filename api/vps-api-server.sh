@@ -12,6 +12,7 @@ readonly PID_FILE="/var/run/vps-api.pid"
 readonly LOG_FILE="/var/log/vps-tools/api.log"
 
 source "${TOOLS_DIR}/lib/output.sh"
+source "${TOOLS_DIR}/lib/validate.sh"
 
 # Load configuration
 load_config() {
@@ -122,7 +123,7 @@ handle_request() {
                 [[ -z "$cmd" || "$cmd" =~ ^# ]] && continue
                 $first || plugins_json+=","
                 first=false
-                plugins_json+="{\"command\":\"$cmd\",\"path\":\"$path\",\"description\":\"$desc\",\"category\":\"$category\",\"enabled\":$enabled}"
+                plugins_json+="{\"command\":\"$(_json_escape "$cmd")\",\"path\":\"$(_json_escape "$path")\",\"description\":\"$(_json_escape "$desc")\",\"category\":\"$(_json_escape "$category")\",\"enabled\":$enabled}"
             done < "$CONFIG_DIR/plugins.conf"
             plugins_json+="]"
             send_response "200 OK" "application/json" "$plugins_json"
@@ -137,7 +138,7 @@ handle_request() {
                 local value="${line#*=}"
                 $first || config_json+=","
                 first=false
-                config_json+="\"$key\":\"$value\""
+                config_json+="\"$(_json_escape "$key")\":\"$(_json_escape "$value")\""
             done < "$CONFIG_FILE"
             config_json+="}"
             send_response "200 OK" "application/json" "$config_json"
@@ -145,12 +146,30 @@ handle_request() {
         
         "POST /api/run/"*)
             local cmd="${path#/api/run/}"
-            if [[ -n "$cmd" ]]; then
-                local output
-                output=$(bash "$TOOLS_DIR/lib/common.sh" && run_plugin "$cmd" --output=json 2>&1 || echo '{"error":"Command failed"}')
-                send_response "200 OK" "application/json" "$output"
-            else
+            if [[ -z "$cmd" ]]; then
                 send_response "400 Bad Request" "application/json" '{"error":"Missing command"}'
+            elif ! validate_command_name "$cmd"; then
+                send_response "400 Bad Request" "application/json" '{"error":"Invalid command name"}'
+            else
+                # Look up command in plugin registry
+                local script_path=""
+                while IFS=: read -r pcmd ppath pdesc pcategory penabled; do
+                    [[ -z "$pcmd" || "$pcmd" =~ ^# ]] && continue
+                    if [[ "$pcmd" == "$cmd" && "$penabled" == "true" ]]; then
+                        script_path="$ppath"
+                        break
+                    fi
+                done < "$CONFIG_DIR/plugins.conf"
+
+                if [[ -z "$script_path" ]]; then
+                    send_response "404 Not Found" "application/json" '{"error":"Command not found or disabled"}'
+                elif [[ ! -f "$TOOLS_DIR/$script_path" ]]; then
+                    send_response "500 Internal Server Error" "application/json" '{"error":"Script not found"}'
+                else
+                    local output
+                    output=$(bash "$TOOLS_DIR/$script_path" --output=json 2>&1 || echo '{"error":"Command failed"}')
+                    send_response "200 OK" "application/json" "$output"
+                fi
             fi
             ;;
         

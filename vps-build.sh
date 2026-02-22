@@ -8,6 +8,7 @@ readonly SCRIPT_VERSION="1.3"
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/output.sh"
+source "${SCRIPT_DIR}/lib/validate.sh"
 
 # Application selection
 SELECTED_APP=""
@@ -117,12 +118,26 @@ reconfigure_firewall_rules() {
     case "$fw_choice" in
         1)
             read -p "Enter rule (e.g., allow 8080/tcp): " rule
-            ufw $rule
+            local action="${rule%% *}"
+            local target="${rule#* }"
+            if ! validate_ufw_action "$action"; then
+                log_error "Invalid UFW action: $action (must be allow/deny/reject/limit/delete)"
+                return 1
+            fi
+            if [[ ! "$target" =~ ^[a-zA-Z0-9/:._\ -]+$ ]]; then
+                log_error "Invalid rule target: $target"
+                return 1
+            fi
+            ufw "$action" $target
             log_success "Rule added"
             ;;
         2)
             read -p "Enter rule number to delete: " rule_num
-            ufw --force delete $rule_num
+            if ! validate_integer "$rule_num"; then
+                log_error "Invalid rule number: $rule_num"
+                return 1
+            fi
+            ufw --force delete "$rule_num"
             log_success "Rule deleted"
             ;;
         3)
@@ -131,7 +146,10 @@ reconfigure_firewall_rules() {
             ;;
         4)
             read -p "Enable or disable firewall? (enable/disable): " fw_action
-            ufw --force $fw_action
+            case "$fw_action" in
+                enable|disable) ufw --force "$fw_action" ;;
+                *) log_error "Invalid option: $fw_action (must be enable or disable)" ;;
+            esac
             ;;
         0) reconfigure_ssh ;;
         *) log_error "Invalid selection"; reconfigure_firewall_rules ;;
@@ -391,10 +409,15 @@ setup_github_ssh_keys() {
 
 configure_ssh() {
     log_info "Configuring SSH..."
-    
+
+    if ! validate_port "$SSH_PORT"; then
+        log_error "Invalid SSH port: $SSH_PORT"
+        return 1
+    fi
+
     SSH_CONFIG="/etc/ssh/sshd_config"
     cp "$SSH_CONFIG" "$SSH_CONFIG.backup.$(date +%s)"
-    
+
     sed -i "s/^#Port 22/Port $SSH_PORT/" "$SSH_CONFIG"
     sed -i "s/^Port 22/Port $SSH_PORT/" "$SSH_CONFIG"
     
