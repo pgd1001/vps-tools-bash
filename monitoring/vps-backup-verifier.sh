@@ -10,12 +10,8 @@ readonly TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 readonly LOG_DIR="/var/log/vps-tools"
 readonly LOG_FILE="$LOG_DIR/backup-verifier.log"
 
-# Colours
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+readonly TOOLS_DIR="${TOOLS_DIR:-/opt/vps-tools}"
+source "${TOOLS_DIR}/lib/output.sh"
 
 # Config
 CONFIG_FILE=""
@@ -24,8 +20,7 @@ ALERT_EMAIL=""
 BACKUP_ISSUES=0
 BACKUPS_OK=0
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $*" | tee -a "$LOG_FILE"; }
-log_success() { echo -e "${GREEN}[✓]${NC} $*" | tee -a "$LOG_FILE"; }
+# Override: add counter side effects
 log_warning() { echo -e "${YELLOW}[⚠]${NC} $*" | tee -a "$LOG_FILE"; ((BACKUP_ISSUES++)); }
 log_error() { echo -e "${RED}[✗]${NC} $*" | tee -a "$LOG_FILE"; ((BACKUP_ISSUES++)); }
 

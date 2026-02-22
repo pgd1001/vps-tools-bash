@@ -99,34 +99,59 @@ output_json() {
 }
 
 # Text output functions (only output in text mode)
+# If LOG_FILE is set before sourcing, these auto-tee to it.
 log_info() {
     [[ "$OUTPUT_FORMAT" == "json" ]] && return
-    echo -e "${BLUE}[INFO]${NC} $*"
+    if [[ -n "${LOG_FILE:-}" ]]; then
+        echo -e "${BLUE}[INFO]${NC} $*" | tee -a "$LOG_FILE"
+    else
+        echo -e "${BLUE}[INFO]${NC} $*"
+    fi
 }
 
 log_success() {
     [[ "$OUTPUT_FORMAT" == "json" ]] && return
-    echo -e "${GREEN}[✓]${NC} $*"
+    if [[ -n "${LOG_FILE:-}" ]]; then
+        echo -e "${GREEN}[✓]${NC} $*" | tee -a "$LOG_FILE"
+    else
+        echo -e "${GREEN}[✓]${NC} $*"
+    fi
 }
 
 log_warning() {
     [[ "$OUTPUT_FORMAT" == "json" ]] && return
-    echo -e "${YELLOW}[⚠]${NC} $*"
+    if [[ -n "${LOG_FILE:-}" ]]; then
+        echo -e "${YELLOW}[⚠]${NC} $*" | tee -a "$LOG_FILE"
+    else
+        echo -e "${YELLOW}[⚠]${NC} $*"
+    fi
 }
 
 log_error() {
     [[ "$OUTPUT_FORMAT" == "json" ]] && return
-    echo -e "${RED}[✗]${NC} $*"
+    if [[ -n "${LOG_FILE:-}" ]]; then
+        echo -e "${RED}[✗]${NC} $*" | tee -a "$LOG_FILE"
+    else
+        echo -e "${RED}[✗]${NC} $*"
+    fi
 }
 
 log_critical() {
     [[ "$OUTPUT_FORMAT" == "json" ]] && return
-    echo -e "${RED}[✗]${NC} $*"
+    if [[ -n "${LOG_FILE:-}" ]]; then
+        echo -e "${RED}[✗]${NC} $*" | tee -a "$LOG_FILE"
+    else
+        echo -e "${RED}[✗]${NC} $*"
+    fi
 }
 
 log_header() {
     [[ "$OUTPUT_FORMAT" == "json" ]] && return
-    echo -e "${CYAN}=== $* ===${NC}"
+    if [[ -n "${LOG_FILE:-}" ]]; then
+        echo -e "${CYAN}=== $* ===${NC}" | tee -a "$LOG_FILE"
+    else
+        echo -e "${CYAN}=== $* ===${NC}"
+    fi
 }
 
 # Dual output - records for JSON, prints for text

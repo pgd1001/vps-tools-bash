@@ -11,12 +11,7 @@ readonly CONFIG_FILE="$CONFIG_DIR/config.conf"
 readonly PID_FILE="/var/run/vps-api.pid"
 readonly LOG_FILE="/var/log/vps-tools/api.log"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+source "${TOOLS_DIR}/lib/output.sh"
 
 # Load configuration
 load_config() {
@@ -27,11 +22,6 @@ load_config() {
     API_BIND="${API_BIND:-127.0.0.1}"
     API_TOKEN="${API_TOKEN:-}"
 }
-
-log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_success() { echo -e "${GREEN}[✓]${NC} $*"; }
-log_warning() { echo -e "${YELLOW}[⚠]${NC} $*"; }
-log_error() { echo -e "${RED}[✗]${NC} $*"; }
 
 # Check if API server is running
 is_running() {

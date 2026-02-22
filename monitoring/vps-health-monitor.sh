@@ -8,12 +8,8 @@ set -euo pipefail
 readonly SCRIPT_VERSION="1.0"
 readonly TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Colours
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+readonly TOOLS_DIR="${TOOLS_DIR:-/opt/vps-tools}"
+source "${TOOLS_DIR}/lib/output.sh"
 
 # Config
 ALERT_EMAIL=""
@@ -22,8 +18,7 @@ EXIT_CODE=0
 CRITICAL_COUNT=0
 WARNING_COUNT=0
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_success() { echo -e "${GREEN}[✓]${NC} $*"; }
+# Override: add counter side effects
 log_warning() { echo -e "${YELLOW}[⚠]${NC} $*"; EXIT_CODE=1; ((WARNING_COUNT++)); }
 log_critical() { echo -e "${RED}[✗]${NC} $*"; EXIT_CODE=1; ((CRITICAL_COUNT++)); }
 
